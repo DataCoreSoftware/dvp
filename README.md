@@ -29,7 +29,7 @@
     ```
     The plugin will request privileges for the following, which must be approved for it to work:
     ```
-    Plugin "datacoresoftware/dcsdvp" is requesting the following privileges:
+    Plugin "datacoresoftware/dvp:1.0.0" is requesting the following privileges:
      - network: [host]
      - mount: [/dev]
      - mount: [/sys]
