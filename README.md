@@ -25,7 +25,7 @@
     
 - Install the plugin:
     ```
-    # docker plugin install --alias datacore --disable datacoresoftware/dcsdvp
+    # docker plugin install --alias datacore --disable datacoresoftware/dvp:1.0.0
     ```
     The plugin will request privileges for the following, which must be approved for it to work:
     ```
