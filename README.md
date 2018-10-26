@@ -1,63 +1,44 @@
 # DataCore Docker Volume Plugin
 
+## Deploying
 
-### Prerequisites
+1. Verify you have met all the requirements.
+ - DataCore SANsymphony version 10.0 PSP7 Update 2 or later.
+ - DataCore REST Server version 1.08 or later.
+ - Docker version 18.03 or later, CE or EE.
+ - If using iSCSI, then the iSCSI initiator must have already been installed.
+ - If using FibreChannel, then connectivity must already be established between the host node and storage server over the FC fabric.
+ - Multipathing should be enabled if mirrored virtual disks will be used. Please refer to the guide for configuring linux hosts [here](http://datacore.custhelp.com/app/answers/detail/a_id/1546/session/L2F2LzEvdGltZS8xNTM3NDczNTY1L2dlbi8xNTM3NDczNTY1L3NpZC9mVUc3NWszSjdDendFZG5ZJTdFemJOQVRQQjZnc0JfaDR6emxQakd3SU1USlYlN0VDWHZiNVlPY1FtM1ZyN2loeGVvUzdFOFFIRlVrY0VVTzlBN2VnNHo1JTdFOE9kcEdKcUlIOHdETFR4dVpQRl9QXyU3RTB5TWtydDlNanFaQSUyMSUyMQ%3D%3D).
+ 
+ **Windows hosts are not currently supported even if running linux workloads.**
 
-> DataCore Server
-- DataCore SANSymphony or HVSAN version 10.0 PSP7 U2 or later.
-- DataCore REST server version 1.08 or later.
-
-> Docker Hosts 
-
-- Docker version 18.06 or later, Community or Enterprise Editions.
-- If using iSCSI, then the iSCSI initiator must have already been installed.
-- If using FibreChannel, then connectivity must already be established between the host node and storage server over the FC fabric.
-- Multipathing should be enabled if mirrored virtual disks will be used. Please refer to the guide for configuring linux hosts [here](http://datacore.custhelp.com/app/answers/detail/a_id/1546/session/L2F2LzEvdGltZS8xNTM3NDczNTY1L2dlbi8xNTM3NDczNTY1L3NpZC9mVUc3NWszSjdDendFZG5ZJTdFemJOQVRQQjZnc0JfaDR6emxQakd3SU1USlYlN0VDWHZiNVlPY1FtM1ZyN2loeGVvUzdFOFFIRlVrY0VVTzlBN2VnNHo1JTdFOE9kcEdKcUlIOHdETFR4dVpQRl9QXyU3RTB5TWtydDlNanFaQSUyMSUyMQ%3D%3D).
-
-> Constraints
-- Windows hosts are currently not supported even if running linux workloads.
-
-### Installation
-> Preparation for iSCSI
-- Connect to SANsymphony with the iSCSI initiator using `iscsiadm`. For example, `iscsiadm -m discovery -t sendtargets -I default -p <IPaddress> --op new`. Be sure to replace *IPaddress* with the address of target port you want to connect to. Do this for each target port you want to connect to, then log in to all ports with `iscsiadm -m node --login`.
-
-> DataCore Plugin
-    
-- Install the plugin:
+2. Start the DataCore plugin.
     ```
-    # docker plugin install --alias datacore --disable datacoresoftware/dvp:1.0.0
-    ```
-    The plugin will request privileges for the following, which must be approved for it to work:
-    ```
-    Plugin "datacoresoftware/dvp:1.0.0" is requesting the following privileges:
-     - network: [host]
-     - mount: [/dev]
-     - mount: [/sys]
-     - mount: [/var/run]
-     - mount: [/lib/modules]
-     - mount: [/etc/iscsi]
-     - allow-all-devices: [true]
-     - capabilities: [CAP_IPC_LOCK CAP_IPC_OWNER CAP_NET_ADMIN CAP_SYS_ADMIN CAP_MKNOD CAP_SYS_MODULE]
-    ```
-
-> Configuration
-- Before enabling the plugin for use, you must set configuration parameters for the name of the storage server, rest server, credentials and virtual disk template name:
-    ```
-    # docker plugin set datacore DCSSVR=<IPaddress/FQDN of SANsymphony server>
-    # docker plugin set datacore DCSREST=<IPaddress/FQDN of SANsymphony REST server>
-    # docker plugin set datacore DCSUNAME=<Username of account to connect to SANsymphony with>
-    # docker plugin set datacore DCSPWORD=<Password for the username>
-    # docker plugin set datacore DCSTEMPL=<Virtual disk temlate name to use when creating persistent volumes>
-    # docker plugin set datacore DCSNODENAME=`hostname`
-    # docker plugin set datacore DOCKERVER=`docker --version`
+    # docker plugin install datacoresoftware/dvp:1.0.1 --alias datacore --grant-all-permissions
     ```
     
-- Enable the plugin
+3. If using iSCSI, connect your docker hosts to each of the SANsymphony nodes you want to consume storage from. For example
     ```
-    # docker plugin enable datacore
+    # iscsiadm -m discovery -t sendtargets -I default -p <FQDN/IPaddress> --op new
+    # iscsiadm -m node --login
+    ```
+    
+4. Create the configuration file for the plugin. This file must be located at `/etc/datacore.json`. Be sure to use the correct options for your environment. 
+    ```
+    cat << EOF > /etc/datacore.json
+    {
+        "StorageServer": "FQDN or IP address of one of your SANsymphony nodes",
+        "RESTServer": "FQDN or IP address of your DataCore REST server",
+        "Username": "Username used to connect to StorageServer - must have admin role",
+        "Password": "Base64 encoded without padding password for the username",
+        "Template": "Default virtual disk template to use when creating persistent storage",
+        "Nodename": "`hostname`",
+        "DockerVer": "`docker --version`"
+    }
+    EOF
     ```
 
-### Using the plugin
+## Start using the plugin
 - The command line syntax to create a persistent volume is:
     ```
     docker volume create -d datacore --name <NameOfVolume> -o <Option>=<Value>
@@ -71,7 +52,7 @@
         - `rollbackutc` specifies that the new persistent volume will be created based on an absolute time, for example `-o rollback=original-volume -o rollbackutc="2018-08-01T00:00:00Z"` will create the new persistent volume with the data from original-volume as it existed on midnight 08/01/2018.
     - `template` allows you to specifiy a different template to create a new persistent volume from a different virtual disk template than the one specified at configuration time.
 
-### Examples
+## Examples
 
 - Simple Volume Creation: Create a persistent volume named *test-vol1* with size *5GB*
     ```
