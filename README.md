@@ -14,7 +14,7 @@
 
 2. Start the DataCore plugin.
     ```
-    # docker plugin install datacoresoftware/dvp:1.0.1 --alias datacore --grant-all-permissions
+    # docker plugin install store/datacoresoftware/dvp:1.0.1 --alias datacore --grant-all-permissions
     ```
     
 3. If using iSCSI, connect your docker hosts to each of the SANsymphony nodes you want to consume storage from. For example
